@@ -108,7 +108,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/bottomButtonBar" >
+        android:background="@color/background_dark" >
 
         <Button
             android:id="@+id/cancel"

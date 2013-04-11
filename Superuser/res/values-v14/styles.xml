@@ -2,7 +2,7 @@
 
     <style name="BottomButton">
         <item name="android:background">?android:attr/selectableItemBackground</item>
-        <item name="android:textColor">?attr/bottomButtonBarText</item>
+        <item name="android:textColor">?android:attr/textColorPrimaryInverse</item>
     </style>
     
 
