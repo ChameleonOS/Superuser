@@ -16,21 +16,15 @@
 
 package com.koushikdutta.superuser;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
-
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.DialogInterface.OnClickListener;
+import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -40,6 +34,14 @@ import com.koushikdutta.superuser.util.Settings;
 import com.koushikdutta.superuser.util.StreamUtility;
 import com.koushikdutta.superuser.util.SuHelper;
 import com.koushikdutta.widgets.BetterListActivity;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends BetterListActivity {
     public MainActivity() {
@@ -81,7 +83,7 @@ public class MainActivity extends BetterListActivity {
         fout.close();
         return ret;
     }
-    
+
     void doRecoveryInstall() {
         final ProgressDialog dlg = new ProgressDialog(this);
         dlg.setTitle(R.string.installing);
@@ -107,6 +109,18 @@ public class MainActivity extends BetterListActivity {
                     doEntry(zout, "assets/update-binary", "META-INF/com/google/android/update-binary");
                     zout.close();
 
+                    zout = new ZipOutputStream(new FileOutputStream(zip));
+                    doEntry(zout, "assets/install-recovery.sh", "install-recovery.sh");
+                    zout.close();
+
+                    ZipFile zf = new ZipFile(getPackageCodePath());
+                    ZipEntry ze = zf.getEntry("assets/reboot");
+                    InputStream in;
+                    FileOutputStream reboot;
+                    StreamUtility.copyStream(in = zf.getInputStream(ze), reboot = openFileOutput("reboot", MODE_PRIVATE));
+                    reboot.close();
+                    in.close();
+
                     final File su = extractSu();
 
                     String command =
@@ -118,10 +132,15 @@ public class MainActivity extends BetterListActivity {
                             "chmod 644 /cache/superuser.zip\n" +
                             "chmod 644 /cache/recovery/command\n" +
                             "sync\n" +
+                            String.format("chmod 755 %s\n", getFileStreamPath("reboot").getAbsolutePath()) +
                             "reboot recovery\n";
                     Process p = Runtime.getRuntime().exec("su");
                     p.getOutputStream().write(command.getBytes());
                     p.getOutputStream().close();
+                    File rebootScript = getFileStreamPath("reboot.sh");
+                    StreamUtility.writeFile(rebootScript, "reboot recovery ; " + getFileStreamPath("reboot").getAbsolutePath() + " recovery ;");
+                    p.waitFor();
+                    Runtime.getRuntime().exec(new String[] { "su", "-c", ". " + rebootScript.getAbsolutePath() });
                     if (p.waitFor() != 0)
                         throw new Exception("non zero result");
                 }
@@ -178,7 +197,7 @@ public class MainActivity extends BetterListActivity {
                 }
                 catch (Exception ex) {
                     _error = true;
-                    ex.printStackTrace();
+                    Log.e("Superuser", "error upgrading", ex);
                 }
                 dlg.dismiss();
                 final boolean error = _error;
@@ -206,12 +225,14 @@ public class MainActivity extends BetterListActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.install);
         builder.setMessage(R.string.install_superuser_info);
-        builder.setPositiveButton(R.string.install, new OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                doSystemInstall();
-            }
-        });
+        if (Build.VERSION.SDK_INT < 18) {
+            builder.setPositiveButton(R.string.install, new OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    doSystemInstall();
+                }
+            });
+        }
         builder.setNegativeButton(android.R.string.cancel, null);
         builder.setNeutralButton(R.string.recovery_install, new OnClickListener() {
             @Override
@@ -227,7 +248,7 @@ public class MainActivity extends BetterListActivity {
     }
     
     // this is intentionally not localized as it will change constantly.
-    private static final String WHATS_NEW = "This update includes a security fix. See Google Play release notes for more information.";
+    private static final String WHATS_NEW = "Recovery installation fixes for some devices.";
     protected void doWhatsNew() {
         if (WHATS_NEW.equals(Settings.getString(this, "whats_new")))
             return;
