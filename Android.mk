@@ -4,14 +4,8 @@
 my_path := $(call my-dir)
 LOCAL_PATH := $(my_path)
 
-ifdef SUPERUSER_EMBEDDED
-SUPERUSER_PACKAGE := com.android.settings
-else
-ifeq ($(SUPERUSER_PACKAGE),)
-SUPERUSER_PACKAGE := com.thirdparty.superuser
-endif
+SUPERUSER_PACKAGE := org.chameleonos.superuser
 include $(my_path)/Superuser/Android.mk
-endif
 
 
 include $(CLEAR_VARS)
@@ -21,7 +15,7 @@ LOCAL_MODULE_TAGS := eng debug
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 LOCAL_STATIC_LIBRARIES := libc
 LOCAL_C_INCLUDES := external/sqlite/dist
-LOCAL_SRC_FILES := Superuser/jni/su/su.c Superuser/jni/su/daemon.c Superuser/jni/su/activity.c Superuser/jni/su/db.c Superuser/jni/su/utils.c ../../sqlite/dist/sqlite3.c
+LOCAL_SRC_FILES := jni/su/su.c jni/su/daemon.c jni/su/activity.c jni/su/db.c jni/su/utils.c jni/sqlite3/sqlite3.c
 LOCAL_CFLAGS := -DSQLITE_OMIT_LOAD_EXTENSION -DREQUESTOR=\"$(SUPERUSER_PACKAGE)\"
 
 ifdef SUPERUSER_PACKAGE_PREFIX
