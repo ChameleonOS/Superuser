@@ -4,4 +4,10 @@ x86
 obj
 local.properties
 gen
+<<<<<<< HEAD
 .DS_Store
+=======
+.DS_Store
+.settings
+libs
+>>>>>>> 1a03a36... require that --daemon is uid/gid 0
